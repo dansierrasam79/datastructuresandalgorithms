@@ -1,0 +1,100 @@
+def bellman_ford(vertices, edges, start_node):
+    """
+    Finds the shortest path distance from a start_node to all other nodes 
+    in a weighted graph, potentially containing negative edge weights, 
+    using the Bellman-Ford algorithm.
+
+    Args:
+        vertices (list): A list of all vertex IDs (e.g., [0, 1, 2, 3]).
+        edges (list): A list of all edges as tuples (u, v, weight).
+                      Example: [(0, 1, 6), (0, 2, 7), ...]
+        start_node (int/str): The node to start the shortest path calculation from.
+
+    Returns:
+        dict or bool: A dictionary of shortest distances if no negative cycle is found, 
+                      or False if a negative cycle is detected.
+    """
+    
+    # Check if the graph is empty or the start node is missing
+    if not vertices or start_node not in vertices:
+        return False # Or raise an exception
+        
+    # 1. Initialization
+    
+    # Distance map: Stores the shortest distance from start_node to each node.
+    # Initialize all distances to infinity, except for the start node (distance 0).
+    distances = {node: float('inf') for node in vertices}
+    distances[start_node] = 0
+    
+    # Predecessor map (optional, but useful for path reconstruction)
+    predecessors = {node: None for node in vertices}
+
+    V = len(vertices)
+
+    # 2. Main Relaxation Loop
+    # Relax all edges |V| - 1 times. After i-th iteration, the shortest path 
+    # using at most i edges is found. Since a simple path has at most V-1 edges, 
+    # V-1 iterations are sufficient to find all shortest paths.
+    for i in range(V - 1):
+        # We assume the graph is represented by a list of edges (u, v, weight)
+        updated = False
+        for u, v, weight in edges:
+            # Relaxation step: D[v] = min(D[v], D[u] + W(u, v))
+            if distances[u] != float('inf') and distances[u] + weight < distances[v]:
+                distances[v] = distances[u] + weight
+                predecessors[v] = u
+                updated = True
+        
+        # Optimization: If no distance was updated in a full pass, 
+        # we can terminate early.
+        if not updated:
+            break
+
+    # 3. Negative Cycle Detection
+    # Perform one more relaxation pass (the V-th pass). If any distance is 
+    # still reduced, it means a negative cycle exists.
+    for u, v, weight in edges:
+        if distances[u] != float('inf') and distances[u] + weight < distances[v]:
+            print("\n!!! Negative Cycle Detected !!!")
+            # In a real application, you might raise an exception here
+            return False # Return False to indicate a failure due to negative cycle
+
+    # If no negative cycle is found, return the shortest distances
+    return distances, predecessors
+
+# --- Example 1: Standard Graph (No Negative Cycle) ---
+print("--- Example 1: Standard Graph ---")
+# Vertices (V=5): 0, 1, 2, 3, 4
+V1 = [0, 1, 2, 3, 4]
+E1 = [
+    (0, 1, 6), (0, 3, 7),
+    (1, 2, 5), (1, 4, -4),
+    (2, 1, -2), 
+    (3, 2, -3), (3, 4, 9),
+    (4, 0, 2), (4, 3, 0)
+]
+start1 = 0
+
+dist1, pred1 = bellman_ford(V1, E1, start1)
+
+if dist1:
+    print(f"Shortest Distances from node {start1}:")
+    for node, dist in dist1.items():
+        print(f"Node {node}: {dist}")
+
+# --- Example 2: Graph with Negative Cycle ---
+print("\n--- Example 2: Negative Cycle Graph ---")
+V2 = [0, 1, 2]
+E2 = [
+    (0, 1, 4),
+    (1, 2, -3),
+    (2, 0, -2) # This edge creates the negative cycle: 0 -> 1 -> 2 -> 0 with cost 4 - 3 - 2 = -1
+]
+start2 = 0
+
+dist2, pred2 = bellman_ford(V2, E2, start2)
+
+if dist2:
+    print(f"Shortest Distances from node {start2}:")
+    for node, dist in dist2.items():
+        print(f"Node {node}: {dist}")
